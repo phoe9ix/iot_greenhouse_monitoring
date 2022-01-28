@@ -1,0 +1,125 @@
+/*
+  Arduino IoT Cloud Variables description
+
+  The following variables are automaticallyupdated when changes are made to the Thing
+
+  CloudRelativeHumidity humidity;
+  CloudTemperatureSensor temperature;
+  int soilMoisture;
+  bool water;
+  bool led;
+   
+  Seperate Function Implementation For Read Write Variables to Update and Fetch data from server 
+*/
+#include "thingProperties.h" // Including All the required Library to interface and calibrate sensors;
+#include "DHT.h"
+#define DHTpin 2 // D4 on the nodemcu ESP8266
+#define DHTTYPE DHT11
+
+DHT dht(DHTpin, DHTTYPE);
+
+void setup(){
+  pinMode(D0 , OUTPUT);
+  pinMode(D3,OUTPUT);
+  pinMode(D5, OUTPUT);
+  Serial.begin(9600);
+  delay(1500);
+  
+  // Defined in thingProperties.h // required to put to interface arduino iot cloud ;
+  initProperties();
+  // Connect to Arduino IoT Cloud
+  ArduinoCloud.begin(ArduinoIoTPreferredConnection);
+  setDebugMessageLevel(2); // to check if server error or error code;
+  ArduinoCloud.printDebugInfo();
+}
+void loop() {
+  ArduinoCloud.update();
+  dht_sensor_getdata();  // user defined function that i have used to check for temperature and humidity ;
+}
+// Function to check for temp and data;
+void dht_sensor_getdata()
+{
+  float hm = dht.readHumidity();
+  Serial.print("Humidity ");
+  Serial.println(hm);
+  float temp = dht.readTemperature();
+  Serial.print("Temperature ");
+  Serial.println(temp);
+  humidity = hm; 
+  temperature = temp;
+  soilMoisture = 145 - map(analogRead(A0), 0, 1023, 0, 100);
+  if(temp>2){
+    digitalWrite(D0 ,HIGH);
+    delay(10000);
+    digitalWrite(D0 , LOW);
+  }else{
+    digitalWrite(D0, LOW);
+  }
+}
+/*
+  Since Water is READ_WRITE variable, onWaterChange() is
+  executed every time a new value is received from IoT Cloud.
+*/
+void onWaterChange()  {
+  // Add your code here to act upon Water change
+  if (water) {
+    digitalWrite(D5, LOW);
+  } else {
+    digitalWrite(D5, HIGH);
+  }
+}
+/*
+  Since Led is READ_WRITE variable, onLedChange() is
+  executed every time a new value is received from IoT Cloud.
+*/
+void onLedChange()  {
+  // Add your code here to act upon Led change
+  if(led){
+    digitalWrite(D3,HIGH);
+  }else{
+    digitalWrite(D3,LOW);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(13,OUTPUT);
+  pinMode(4,OUTPUT);
+}
+void loop() {
+  float sensorValue = analogRead(A0);
+  // Reads the analog input ranging from 0 to 1023
+  //used a resistor to get this value in range of 0-10 from (0 to 1023);
+  
+  Serial.println(sensorValue); //to debug and check any error 
+  
+  if(sensorValue<=0.4) // tested value to correctly test ldr/ligth in indoor condition // this value needs to be tested and 
+  // changed according to environment values;
+  {
+    digitalWrite(13,HIGH); // accordingly turn on off the Indoor lights of the greenhouse;
+  }
+  else{
+  digitalWrite(13,LOW);
+  }
+  
+  // Program To control and test Rain water sensor ; :);
+  int value = analogRead(A3);//read value
+  Serial.print("Value : ");
+  Serial.println(value);
+  if (value < 300) {//check condition
+    digitalWrite(4, HIGH);
+    Serial.print("Heavy rain  LED on ");
+  } else {
+    digitalWrite(4, LOW);
+  }
+}
